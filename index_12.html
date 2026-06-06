@@ -1,0 +1,1671 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>2026 MDA 튀르키예 연수</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gold:#C9963A;--gold-light:#E8C06A;--gold-dim:#7A5C22;
+  --dark:#0D0F14;--dark2:#161920;--dark3:#1E2129;--dark4:#252830;
+  --text:#E8E4DC;--text-dim:#9A9587;--text-muted:#5A5650;
+  --radius:16px;
+}
+html,body{height:100%;overflow:hidden}
+body{font-family:"Noto Sans KR",sans-serif;background:var(--dark);color:var(--text);display:flex;flex-direction:column}
+
+/* ── HEADER ── */
+header{z-index:1000;background:var(--dark2);border-bottom:1px solid var(--gold-dim);padding:0 16px;height:52px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.hdr-left{display:flex;align-items:center;gap:10px}
+.hdr-left h1{font-family:"Cinzel",serif;font-size:15px;font-weight:600;color:var(--gold);letter-spacing:.04em;white-space:nowrap}
+.hdr-left span{font-size:10px;color:var(--text-dim);font-weight:300;display:none}
+@media(min-width:600px){.hdr-left span{display:inline}}
+.hdr-right{display:flex;gap:8px;align-items:center}
+.badge{background:rgba(201,150,58,.15);border:1px solid var(--gold-dim);color:var(--gold-light);border-radius:4px;padding:3px 9px;font-size:10px;font-weight:500;letter-spacing:.05em;white-space:nowrap}
+
+/* ── TAB BAR ── */
+.tab-bar{display:flex;background:var(--dark2);border-bottom:1px solid rgba(201,150,58,.2);flex-shrink:0;z-index:999}
+.tab-btn{flex:1;height:44px;border:none;background:transparent;color:var(--text-dim);font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;border-bottom:2px solid transparent;transition:all .2s;font-family:"Noto Sans KR",sans-serif;letter-spacing:.02em}
+.tab-btn.active{color:var(--gold);border-bottom-color:var(--gold);background:rgba(201,150,58,.06)}
+.tab-btn svg{flex-shrink:0}
+
+/* ── VIEWS ── */
+.view{display:none;flex:1;overflow:hidden;flex-direction:column;position:relative;min-height:0}
+.view.active{display:flex}
+
+/* ── MAP ── */
+#map{flex:1}
+.leaflet-container{background:#e8e0d0!important}
+.leaflet-control-zoom{border:1px solid rgba(201,150,58,.35)!important;border-radius:10px!important;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.5)!important}
+.leaflet-control-zoom a{background:rgba(13,15,20,.93)!important;color:var(--gold-light)!important;border-bottom:1px solid rgba(201,150,58,.2)!important;font-size:18px!important;line-height:30px!important;width:34px!important;height:34px!important}
+.leaflet-control-zoom a:hover{background:rgba(201,150,58,.22)!important}
+.leaflet-control-attribution{background:rgba(13,15,20,.7)!important;color:var(--text-muted)!important;font-size:9px!important}
+.leaflet-control-attribution a{color:var(--text-muted)!important}
+
+/* DAY NAV */
+.day-nav{position:absolute;top:10px;left:50%;transform:translateX(-50%);display:flex;gap:3px;background:rgba(13,15,20,.93);border:1px solid rgba(201,150,58,.3);border-radius:24px;padding:4px;backdrop-filter:blur(12px);z-index:900;white-space:nowrap}
+.day-btn{width:28px;height:28px;border-radius:50%;border:none;background:transparent;color:var(--text-dim);font-size:9px;font-weight:700;cursor:pointer;transition:all .2s;font-family:"Cinzel",serif}
+.day-btn:hover{background:rgba(201,150,58,.18);color:var(--gold)}
+.day-btn.active{background:var(--gold);color:var(--dark)}
+
+/* LEGEND */
+.map-legend{position:absolute;bottom:28px;left:10px;background:rgba(13,15,20,.92);border:1px solid rgba(201,150,58,.28);border-radius:8px;padding:8px 12px;font-size:10px;backdrop-filter:blur(12px);z-index:900;pointer-events:none}
+.li{display:flex;align-items:center;gap:7px;margin-bottom:3px;color:var(--text-dim)}
+.li:last-child{margin-bottom:0}
+.ldot{width:9px;height:9px;border-radius:50%;flex-shrink:0;border:2px solid rgba(255,255,255,.2)}
+.llh{width:16px;height:0;flex-shrink:0}
+
+/* PIN */
+.pin-wrap{position:relative;display:flex;flex-direction:column;align-items:center}
+.pin-pulse{border-radius:50%;border:2px solid;position:absolute;opacity:0;animation:pulseRing 2.8s ease-out infinite}
+@keyframes pulseRing{0%{transform:scale(.55);opacity:.85}100%{transform:scale(2.2);opacity:0}}
+.pin-circle{border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;border:2.5px solid rgba(255,255,255,.25);box-shadow:0 4px 18px rgba(0,0,0,.65);font-weight:600;transition:transform .15s}
+.pin-label{background:rgba(13,15,20,.93);border-radius:4px;font-weight:600;color:#E8E4DC;white-space:nowrap;letter-spacing:.02em;backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.08);line-height:1.3;text-align:center;margin-top:1px}
+
+/* ── MODAL POPUP (replaces sidebar) ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1100;display:none;backdrop-filter:blur(3px);cursor:pointer}
+.modal-bg.show{display:block}
+.modal{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:100%;max-width:600px;max-height:88vh;background:var(--dark2);border-radius:var(--radius) var(--radius) 0 0;border-top:1px solid var(--gold-dim);z-index:1200;display:none;flex-direction:column;overflow:hidden;animation:slideUp .3s cubic-bezier(.32,1,.28,1)}
+.modal.show{display:flex}
+@keyframes slideUp{from{transform:translateX(-50%) translateY(100%)}to{transform:translateX(-50%) translateY(0)}}
+@media(min-width:640px){
+  .modal{bottom:auto;top:50%;transform:translate(-50%,-50%);border-radius:var(--radius);border:1px solid var(--gold-dim);max-height:85vh;animation:fadeScaleIn .25s cubic-bezier(.32,1,.28,1)}
+  @keyframes fadeScaleIn{from{opacity:0;transform:translate(-50%,-50%) scale(.9)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+}
+.modal-handle{width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:2px;margin:10px auto 0;flex-shrink:0}
+.modal-hdr{padding:14px 18px 12px;border-bottom:1px solid rgba(201,150,58,.2);flex-shrink:0;position:relative}
+.modal-day{font-size:10px;color:var(--gold);letter-spacing:.14em;text-transform:uppercase;font-weight:600;margin-bottom:4px}
+.modal-name{font-family:"Cinzel",serif;font-size:19px;font-weight:600;color:var(--text);line-height:1.2;margin-bottom:2px}
+.modal-sub{font-size:11px;color:var(--text-dim);font-weight:300}
+.modal-gmap{margin-top:9px;display:inline-flex;align-items:center;gap:6px;background:rgba(41,128,185,.14);border:1px solid rgba(41,128,185,.38);color:#7FB3D3;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:500;text-decoration:none;transition:all .2s}
+.modal-gmap:hover,.modal-gmap:active{background:rgba(41,128,185,.28);border-color:#4FA3E0}
+.modal-close-bar{display:flex;justify-content:center;padding:12px 0 4px;flex-shrink:0;border-top:1px solid rgba(255,255,255,.06)}
+.modal-close-btn{background:rgba(201,150,58,.12);border:1px solid rgba(201,150,58,.3);border-radius:20px;color:var(--gold-light);font-size:12px;font-weight:500;padding:8px 28px;cursor:pointer;font-family:"Noto Sans KR",sans-serif;transition:all .2s;letter-spacing:.04em}
+.modal-close-btn:hover,.modal-close-btn:active{background:rgba(201,150,58,.25);border-color:var(--gold)}
+.modal-body{overflow-y:auto;padding:16px 18px 32px;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--gold-dim) transparent}
+.modal-body::-webkit-scrollbar{width:3px}
+.modal-body::-webkit-scrollbar-thumb{background:var(--gold-dim);border-radius:2px}
+
+/* ── SHARED CONTENT STYLES ── */
+.sec{margin-bottom:20px}
+.sec-t{font-size:10px;letter-spacing:.14em;color:var(--gold);text-transform:uppercase;font-weight:600;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid rgba(201,150,58,.2)}
+.si{background:var(--dark3);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:10px 12px;margin-bottom:6px}
+.si-name{font-size:13px;font-weight:500;color:var(--text);margin-bottom:2px}
+.si-desc{font-size:11px;color:var(--text-dim);line-height:1.6}
+.si-row{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:5px}
+.si-tag{display:inline-block;font-size:10px;padding:2px 8px;border-radius:12px;font-weight:500;letter-spacing:.04em}
+.tc{background:rgba(155,89,182,.2);color:#C39BD3;border:1px solid rgba(155,89,182,.4)}
+.th{background:rgba(41,128,185,.2);color:#7FB3D3;border:1px solid rgba(41,128,185,.4)}
+.tn{background:rgba(39,174,96,.2);color:#7DCEA0;border:1px solid rgba(39,174,96,.4)}
+.tp{background:rgba(201,150,58,.2);color:#E8C06A;border:1px solid rgba(201,150,58,.4)}
+.si-gmap{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:#4FA3E0;text-decoration:none;border:1px solid rgba(79,163,224,.3);border-radius:4px;padding:2px 7px;transition:all .2s;white-space:nowrap}
+.hotel-box{background:var(--dark3);border:1px solid rgba(201,150,58,.25);border-radius:8px;padding:11px 13px}
+.hotel-name{font-size:13px;font-weight:600;color:var(--gold-light);margin-bottom:4px;line-height:1.4}
+.hotel-stars{color:var(--gold);font-size:11px}
+.verse{background:var(--dark3);border-left:3px solid var(--gold);border-radius:0 8px 8px 0;padding:10px 12px;font-size:12px;color:var(--text-dim);line-height:1.7;font-style:italic}
+.verse cite{display:block;font-style:normal;color:var(--gold);font-size:10px;margin-top:4px;font-weight:500}
+.tpill{display:inline-flex;align-items:center;gap:5px;background:var(--dark3);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:4px 10px;font-size:11px;color:var(--text-dim);margin-right:5px;margin-bottom:5px}
+.tpill .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.note-wrap{position:relative}
+.note-ta{width:100%;min-height:80px;background:var(--dark3);border:1px solid rgba(255,255,255,.09);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--text);line-height:1.7;font-family:"Noto Sans KR",sans-serif;resize:vertical;outline:none;transition:border-color .2s;-webkit-appearance:none}
+.note-ta:focus{border-color:rgba(201,150,58,.55)}
+.note-ta::placeholder{color:var(--text-muted)}
+.note-badge{position:absolute;right:8px;top:8px;font-size:10px;color:#7DCEA0;background:rgba(39,174,96,.15);border:1px solid rgba(39,174,96,.3);border-radius:4px;padding:2px 7px;opacity:0;transition:opacity .3s;pointer-events:none}
+.note-badge.show{opacity:1}
+
+/* ── SCHEDULE VIEW ── */
+.sched-view{flex:1;overflow-y:auto;padding:16px;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--gold-dim) transparent}
+.sched-view::-webkit-scrollbar{width:3px}
+.sched-view::-webkit-scrollbar-thumb{background:var(--gold-dim);border-radius:2px}
+
+.sched-header{text-align:center;padding:20px 0 24px}
+.sched-header h2{font-family:"Cinzel",serif;font-size:18px;color:var(--gold);font-weight:600;margin-bottom:6px}
+.sched-header p{font-size:12px;color:var(--text-dim)}
+
+/* phase divider */
+.phase-label{display:flex;align-items:center;gap:10px;margin:20px 0 12px}
+.phase-label span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:600;white-space:nowrap}
+.phase-label::before,.phase-label::after{content:"";flex:1;height:1px;background:rgba(201,150,58,.25)}
+
+/* meeting card */
+.meet-card{background:var(--dark3);border:1px solid rgba(255,255,255,.07);border-radius:12px;margin-bottom:10px;overflow:hidden;transition:border-color .2s}
+.meet-card:hover{border-color:rgba(201,150,58,.35)}
+.meet-card-hdr{display:flex;align-items:stretch;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.meet-date-col{background:rgba(201,150,58,.12);border-right:1px solid rgba(201,150,58,.2);padding:14px 12px;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:64px;gap:2px;flex-shrink:0}
+.meet-month{font-size:9px;color:var(--gold);text-transform:uppercase;letter-spacing:.1em;font-weight:600}
+.meet-day-num{font-family:"Cinzel",serif;font-size:22px;color:var(--gold-light);font-weight:700;line-height:1}
+.meet-dow{font-size:9px;color:var(--text-muted)}
+.meet-info{flex:1;padding:12px 14px}
+.meet-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px}
+.meet-meta{font-size:11px;color:var(--text-dim);display:flex;flex-wrap:wrap;gap:8px}
+.meet-meta span{display:flex;align-items:center;gap:3px}
+.meet-toggle{display:flex;align-items:center;padding:0 14px;color:var(--text-muted);font-size:14px;transition:transform .25s}
+.meet-toggle.open{transform:rotate(180deg)}
+.meet-body{display:none;padding:12px 14px 14px;border-top:1px solid rgba(255,255,255,.05)}
+.meet-body.open{display:block}
+.meet-agenda{list-style:none}
+.meet-agenda li{display:flex;align-items:flex-start;gap:8px;padding:5px 0;font-size:12px;color:var(--text-dim);border-bottom:1px solid rgba(255,255,255,.04)}
+.meet-agenda li:last-child{border-bottom:none}
+.meet-agenda li .time{color:var(--gold);font-weight:600;font-size:11px;min-width:48px;flex-shrink:0;margin-top:1px}
+.meet-agenda li .item{line-height:1.5}
+.meet-note-wrap{margin-top:10px}
+.meet-note-label{font-size:10px;color:var(--gold);letter-spacing:.1em;text-transform:uppercase;font-weight:600;margin-bottom:5px}
+.attend-list{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.attend-chip{background:rgba(201,150,58,.1);border:1px solid rgba(201,150,58,.25);border-radius:20px;padding:3px 10px;font-size:11px;color:var(--gold-light)}
+
+/* dday badge on meet card */
+.dday-badge{display:inline-block;font-size:10px;font-weight:700;border-radius:4px;padding:2px 7px;margin-left:6px;vertical-align:middle}
+.dday-future{background:rgba(39,174,96,.2);color:#7DCEA0;border:1px solid rgba(39,174,96,.35)}
+.dday-today{background:rgba(201,150,58,.25);color:var(--gold-light);border:1px solid rgba(201,150,58,.5)}
+.dday-past{background:rgba(255,255,255,.05);color:var(--text-muted);border:1px solid rgba(255,255,255,.1)}
+
+/* ── SUB TAB ── */
+.sub-tab-bar{display:flex;background:var(--dark3);border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0}
+.sub-tab-btn{flex:1;height:38px;border:none;background:transparent;color:var(--text-muted);font-size:11px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;border-bottom:2px solid transparent;transition:all .2s;font-family:"Noto Sans KR",sans-serif}
+.sub-tab-btn.active{color:var(--gold-light);border-bottom-color:var(--gold-dim);background:rgba(201,150,58,.06)}
+.sub-view{display:none;flex:1;overflow:hidden;flex-direction:column;min-height:0}
+.sub-view.active{display:flex}
+
+/* ── CHECKLIST ── */
+.check-view{flex:1;overflow-y:auto;padding:16px;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--gold-dim) transparent;min-height:0}
+.check-view::-webkit-scrollbar{width:3px}
+.check-view::-webkit-scrollbar-thumb{background:var(--gold-dim);border-radius:2px}
+.check-header{text-align:center;padding:18px 0 16px}
+.check-header h2{font-family:"Cinzel",serif;font-size:17px;color:var(--gold);font-weight:600;margin-bottom:5px}
+.check-header p{font-size:11px;color:var(--text-muted)}
+.check-progress-wrap{background:var(--dark3);border:1px solid rgba(201,150,58,.2);border-radius:12px;padding:14px 16px;margin-bottom:16px}
+.check-progress-label{display:flex;justify-content:space-between;font-size:11px;color:var(--text-dim);margin-bottom:8px}
+#checkPct{color:var(--gold);font-weight:700}
+.check-progress-track{height:6px;background:var(--dark4);border-radius:3px;overflow:hidden;margin-bottom:6px}
+.check-progress-fill{height:100%;background:linear-gradient(90deg,var(--gold-dim),var(--gold));border-radius:3px;width:0%;transition:width .4s cubic-bezier(.4,0,.2,1)}
+.check-progress-sub{font-size:10px;color:var(--text-muted);text-align:right}
+.check-cat{background:var(--dark3);border:1px solid rgba(255,255,255,.06);border-radius:12px;margin-bottom:10px;overflow:hidden}
+.check-cat-hdr{display:flex;align-items:center;gap:8px;padding:13px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .15s}
+.check-cat-hdr:hover{background:rgba(255,255,255,.03)}
+.check-cat-icon{font-size:16px;flex-shrink:0}
+.check-cat-title{flex:1;font-size:13px;font-weight:600;color:var(--text)}
+.check-cat-count{font-size:11px;color:var(--text-muted);background:var(--dark4);border-radius:10px;padding:2px 8px;border:1px solid rgba(255,255,255,.07)}
+.check-cat-count.done{color:var(--gold-light);background:rgba(201,150,58,.12);border-color:rgba(201,150,58,.3)}
+.check-cat-arrow{font-size:11px;color:var(--text-muted);transition:transform .25s;flex-shrink:0}
+.check-cat-arrow.open{transform:rotate(180deg)}
+.check-cat-body{display:none;border-top:1px solid rgba(255,255,255,.05)}
+.check-cat-body.open{display:block}
+.check-item{display:flex;align-items:center;gap:12px;padding:11px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.04);transition:background .15s;-webkit-tap-highlight-color:transparent}
+.check-item:last-child{border-bottom:none}
+.check-item:hover{background:rgba(255,255,255,.03)}
+.check-item.done{opacity:.55}
+.check-item.done .check-label{text-decoration:line-through;color:var(--text-muted)}
+.check-box{width:20px;height:20px;border-radius:6px;border:2px solid rgba(255,255,255,.2);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s;background:transparent}
+.check-item.done .check-box{background:var(--gold);border-color:var(--gold)}
+.check-item.done .check-box::after{content:"✓";color:var(--dark);font-size:12px;font-weight:800;line-height:1}
+.check-label{font-size:13px;color:var(--text);line-height:1.45}
+.check-reset-btn{background:transparent;border:1px solid rgba(255,255,255,.12);border-radius:20px;color:var(--text-muted);font-size:11px;padding:8px 20px;cursor:pointer;font-family:"Noto Sans KR",sans-serif;transition:all .2s}
+.check-reset-btn:hover{border-color:rgba(201,150,58,.3);color:var(--text-dim)}
+/* ── 편집모드 토글 바 ── */
+.check-toolbar{display:flex;gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap}
+.tool-btn{height:32px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:var(--dark3);color:var(--text-dim);font-size:11px;padding:0 12px;cursor:pointer;font-family:"Noto Sans KR",sans-serif;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:5px}
+.tool-btn:hover{border-color:rgba(201,150,58,.3);color:var(--text)}
+.tool-btn.on{border-color:var(--gold);background:rgba(201,150,58,.15);color:var(--gold-light)}
+.tool-btn.danger:hover{background:rgba(255,80,80,.08);border-color:rgba(255,80,80,.3);color:#F1948A}
+/* 삭제 버튼 */
+.check-item{position:relative}
+.check-del{display:none;width:22px;height:22px;border-radius:50%;border:1px solid rgba(255,80,80,.35);background:rgba(255,80,80,.08);color:#F1948A;font-size:13px;line-height:1;cursor:pointer;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;margin-left:auto}
+.check-del:hover{background:rgba(255,80,80,.28)}
+.edit-mode .check-del{display:flex}
+.edit-mode .check-item:hover{background:rgba(255,255,255,.03)}
+.edit-mode .check-item .check-box{opacity:.45;pointer-events:none;cursor:default}
+/* 추가 row */
+.add-item-row{display:none;padding:8px 14px 12px;border-top:1px solid rgba(255,255,255,.05);gap:8px;align-items:center}
+.edit-mode .add-item-row{display:flex}
+.add-item-input{flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(201,150,58,.3);border-radius:8px;padding:7px 10px;font-size:12px;color:var(--text);font-family:"Noto Sans KR",sans-serif;outline:none}
+.add-item-input:focus{border-color:var(--gold)}
+.add-item-input::placeholder{color:var(--text-muted)}
+.add-item-btn{width:30px;height:30px;border-radius:8px;border:1px solid rgba(201,150,58,.4);background:rgba(201,150,58,.15);color:var(--gold-light);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.add-item-btn:hover{background:rgba(201,150,58,.3)}
+
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-left">
+    <h1>✦ 2026 MDA 튀르키예 연수</h1>
+    <span>바울의 전도 여정 + 계시록 7교회 | 10일</span>
+  </div>
+  <div class="hdr-right">
+    <span class="badge">07.13–07.22</span>
+  </div>
+</header>
+
+<!-- TAB BAR -->
+<div class="tab-bar">
+  <button class="tab-btn active" id="tab-map" onclick="switchTab('map')">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+    연수 지도
+  </button>
+  <button class="tab-btn" id="tab-sched" onclick="switchTab('sched')">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    준비
+  </button>
+</div>
+
+<!-- MAP VIEW -->
+<div class="view active" id="view-map">
+  <div id="map"></div>
+
+  <div class="day-nav" id="dayNav">
+    <button class="day-btn active" onclick="hlDay(0,this)">전체</button>
+    <button class="day-btn" onclick="hlDay(1,this)">1</button>
+    <button class="day-btn" onclick="hlDay(2,this)">2</button>
+    <button class="day-btn" onclick="hlDay(3,this)">3</button>
+    <button class="day-btn" onclick="hlDay(4,this)">4</button>
+    <button class="day-btn" onclick="hlDay(5,this)">5</button>
+    <button class="day-btn" onclick="hlDay(6,this)">6</button>
+    <button class="day-btn" onclick="hlDay(7,this)">7</button>
+    <button class="day-btn" onclick="hlDay(8,this)">8</button>
+    <button class="day-btn" onclick="hlDay(9,this)">9</button>
+    <button class="day-btn" onclick="hlDay(10,this)">10</button>
+  </div>
+
+  <div class="map-legend">
+    <div class="li"><div class="ldot" style="background:#C9963A;border-color:#E8C06A"></div>주요 도시 / 숙박지</div>
+    <div class="li"><div class="ldot" style="background:#9B59B6;border-color:#C39BD3"></div>성지 방문지</div>
+    <div class="li"><div class="llh" style="border-top:2.5px solid #C9963A"></div>육상 이동</div>
+    <div class="li"><div class="llh" style="border-top:2px dashed #4FA3E0"></div>항공 이동</div>
+  </div>
+</div>
+
+<!-- SCHEDULE VIEW -->
+<div class="view" id="view-sched" style="flex-direction:column">
+  <!-- 서브탭 -->
+  <div class="sub-tab-bar">
+    <button class="sub-tab-btn active" id="stab-meet" onclick="switchSubTab('meet')">📅 모임 일정</button>
+    <button class="sub-tab-btn" id="stab-check" onclick="switchSubTab('check')">✓ 체크리스트</button>
+  </div>
+
+  <!-- 준비 모임 서브뷰 -->
+  <div class="sub-view active" id="sv-meet">
+  <div class="sched-view">
+    <div class="sched-header">
+      <h2>✦ 2주간 준비 모임</h2>
+      <p>2026 MDA 튀르키예 연수 사전 준비 일정 (6/21 – 7/12)</p>
+    </div>
+
+    <!-- ── 1주차 시작 ── -->
+    <div class="phase-label"><span>1주차 시작 — OT</span></div>
+
+    <div class="meet-card" id="mc1">
+      <div class="meet-card-hdr" onclick="toggleMeet('mc1')">
+        <div class="meet-date-col">
+          <div class="meet-month">Jun</div>
+          <div class="meet-day-num">21</div>
+          <div class="meet-dow">일요일</div>
+        </div>
+        <div class="meet-info">
+          <div class="meet-title">종강예배 &amp; 연수 OT</div>
+          <div class="meet-meta">
+            <span>🕐 09:00 – 12:00</span>
+            <span>📍 엔젤 204호</span>
+          </div>
+        </div>
+        <div class="meet-toggle" id="mt1">▼</div>
+      </div>
+      <div class="meet-body" id="mb1">
+        <ul class="meet-agenda">
+          <li><span class="time">07:00</span><span class="item">하계연수 전체 준비기도회 (엘림실, 7:00–8:00)</span></li>
+          <li><span class="time">08:00</span><span class="item">쉬는시간 (8:00–9:00)</span></li>
+          <li><span class="time">09:00</span><span class="item">종강예배 (엔젤 204호)</span></li>
+          <li><span class="time">09:30</span><span class="item">[TF팀&amp;준비팀] 팀장 회의 (09:30–10:30)</span></li>
+          <li><span class="time">10:30</span><span class="item">쉬는시간</span></li>
+          <li><span class="time">10:45</span><span class="item">시작 전 기도회 (인도자: 권태민)</span></li>
+          <li><span class="time">11:00</span><span class="item">[TF팀] ① 해외연수 개요 브리핑 ② 2주간 준비모임 소개 ③ pre-insight note 배부</span></li>
+          <li><span class="time">11:30</span><span class="item">[목사님] 해외연수 관련 말씀</span></li>
+          <li><span class="time">12:00</span><span class="item">[준비팀] 준비팀별 모임 및 식사</span></li>
+        </ul>
+        <div class="meet-note-wrap">
+          <div class="meet-note-label">나의 메모</div>
+          <div class="note-wrap">
+            <textarea class="note-ta" id="mn1" placeholder="모임 메모를 입력하세요..."></textarea>
+            <span class="note-badge" id="mnb1">저장됨 ✓</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 1주차 평일 ── -->
+    <div class="phase-label"><span>1주차 평일 (6/23 화 – 6/27 토) · 월요일 모임 없음</span></div>
+
+    <div class="meet-card" id="mc2">
+      <div class="meet-card-hdr" onclick="toggleMeet('mc2')">
+        <div class="meet-date-col">
+          <div class="meet-month">Jun</div>
+          <div class="meet-day-num">23</div>
+          <div class="meet-dow">화요일</div>
+        </div>
+        <div class="meet-info">
+          <div class="meet-title">1주차 화요일 — 기도회 &amp; 발표</div>
+          <div class="meet-meta">
+            <span>🕐 06:30 – 12:00</span>
+            <span>📍 엔젤 204호</span>
+          </div>
+        </div>
+        <div class="meet-toggle" id="mt2">▼</div>
+      </div>
+      <div class="meet-body" id="mb2">
+        <ul class="meet-agenda">
+          <li><span class="time">06:30</span><span class="item">준비기도회 — 인도자: 서혜빈 (기도회 06:30–07:00 / 개인기도 07:00–07:30)</span></li>
+          <li><span class="time">07:30</span><span class="item">쉬는시간</span></li>
+          <li><span class="time">09:00</span><span class="item">시작 전 기도회 — 인도자: 박종덕</span></li>
+          <li><span class="time">09:15</span><span class="item">말씀 묵상</span></li>
+          <li><span class="time">09:45</span><span class="item">[현지 조] 주제 조사 발표 2팀 (팀당 15분)</span></li>
+          <li><span class="time">10:15</span><span class="item">쉬는시간</span></li>
+          <li><span class="time">10:30</span><span class="item">[스터디] 방문지 발표</span></li>
+          <li><span class="time">11:00</span><span class="item">[주체찬양 연습]</span></li>
+          <li><span class="time">12:00</span><span class="item">[현지 조] 조별 모임 및 식사</span></li>
+        </ul>
+        <div class="meet-note-wrap">
+          <div class="meet-note-label">나의 메모</div>
+          <div class="note-wrap">
+            <textarea class="note-ta" id="mn2" placeholder="모임 메모를 입력하세요..."></textarea>
+            <span class="note-badge" id="mnb2">저장됨 ✓</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="meet-card" id="mc3">
+      <div class="meet-card-hdr" onclick="toggleMeet('mc3')">
+        <div class="meet-date-col">
+          <div class="meet-month">Jun</div>
+          <div class="meet-day-num">24</div>
+          <div class="meet-dow">수요일</div>
+        </div>
+        <div class="meet-info">
+          <div class="meet-title">1주차 수요일 — 기도회 &amp; 발표</div>
+          <div class="meet-meta">
+            <span>🕐 06:30 – 12:00</span>
+            <span>📍 엔젤 204호</span>
+          </div>
+        </div>
+        <div class="meet-toggle" id="mt3">▼</div>
+      </div>
+      <div class="meet-body" id="mb3">
+        <ul class="meet-agenda">
+          <li><span class="time">06:30</span><span class="item">준비기도회 — 인도자: 허헌</span></li>
+          <li><span class="time">07:30</span><span class="item">쉬는시간</span></li>
+          <li><span class="time">09:00</span><span class="item">시작 전 기도회 — 인도자: 김서윤</span></li>
+          <li><span class="time">09:15</span><span class="item">말씀 묵상</span></li>
+          <li><span class="time">09:45</span><span class="item">[현지 조] 주제 조사 발표 2팀 (팀당 15분)</span></li>
+          <li><span class="time">10:15</span><span class="item">쉬는시간</span></li>
+          <li><span class="time">10:30</span><span class="item">[스터디] 방문지 발표</span></li>
+          <li><span class="time">11:30</span><span class="item">[주체찬양 연습]</span></li>
+          <li><span class="time">12:00</span><span class="item">[현지 조] 조별 모임 및 식사</span></li>
+        </ul>
+        <div class="meet-note-wrap">
+          <div class="meet-note-label">나의 메모</div>
+          <div class="note-wrap">
+            <textarea class="note-ta" id="mn3" placeholder="모임 메모를 입력하세요..."></textarea>
+            <span class="note-badge" id="mnb3">저장됨 ✓</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="meet-card" id="mc4">
+      <div class="meet-card-hdr" onclick="toggleMeet('mc4')">
+        <div class="meet-date-col">
+          <div class="meet-month">Jun</div>
+          <div class="meet-day-num">25</div>
+          <div class="meet-dow">목요일</div>
+        </div>
+        <div class="meet-info">
+          <div class="meet-title">1주차 목요일 — 기도회 &amp; 발표</div>
+          <div class="meet-meta">
+            <span>🕐 06:30 – 12:00</span>
+            <span>📍 엔젤 204호</span>
+          </div>
+        </div>
+        <div class="meet-toggle" id="mt4">▼</div>
+      </div>
+      <div class="meet-body" id="mb4">
+        <ul class="meet-agenda">
+          <li><span class="time">06:30</span><span class="item">준비기도회 — 인도자: 현영민</span></li>
+          <li><span class="time">07:30</span><span class="item">쉬는시간</span></li>
+          <li><span class="time">09:00</span><span class="item">시작 전 기도회 — 인도자: 윤보영</span></li>
+          <li><span class="time">09:15</span><span class="item">말씀 묵상</span></li>
+          <li><span class="time">09:45</span><span class="item">[현지 조] 주제 조사 발표 2팀 (팀당 15분)</span></li>
+          <li><span class="time">10:15</span><span class="item">쉬는시간</span></li>
+          <li><span class="time">10:30</span><span class="item">[스터디] 방문지 발표</span></li>
+          <li><span class="time">11:30</span><span class="item">[의무팀] 위생 및 안전 / 코로나 주의사항</span></li>
+          <li><span class="time">12:00</span><span class="item">[현지 조] 조별 모임 및 식사</span></li>
+        </ul>
+        <div class="meet-note-wrap">
+          <div class="meet-note-label">나의 메모</div>
+          <div class="note-wrap">
+            <textarea class="note-ta" id="mn4" placeholder="모임 메모를 입력하세요..."></textarea>
+            <span class="note-badge" id="mnb4">저장됨 ✓</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="meet-card" id="mc5">
+      <div class="meet-card-hdr" onclick="toggleMeet('mc5')">
+        <div class="meet-date-col">
+          <div class="meet-month">Jun</div>
+          <div class="meet-day-num">26</div>
+          <div class="meet-dow">금요일</div>
+        </div>
+        <div class="meet-info">
+          <div class="meet-title">1주차 금요일 — 기도회 &amp; 발표</div>
+          <div class="meet-meta">
+            <span>🕐 06:30 – 12:00</span>
+            <span>📍 엔젤 204호</span>
+          </div>
+        </div>
+        <div class="meet-toggle" id="mt5">▼</div>
+      </div>
+      <div class="meet-body" id="mb5">
+        <ul class="meet-agenda">
+          <li><span class="time">06:30</span><span class="item">준비기도회 — 인도자: 김찬영</span></li>
+          <li><span class="time">07:30</span><span class="item">쉬는시간</span></li>
+          <li><span class="time">09:00</span><span class="item">시작 전 기도회 — 인도자: 방의인</span></li>
+          <li><span class="time">09:15</span><span class="item">말씀 묵상</span></li>
+          <li><span class="time">09:45</span><span class="item">[현지 조] 주제 조사 발표 1팀</span></li>
+          <li><span class="time">10:00</span><span class="item">쉬는시간</span></li>
+          <li><span class="time">10:15</span><span class="item">[스터디] 방문지 발표</span></li>
+          <li><span class="time">11:30</span><span class="item">[주체찬양 연습]</span></li>
+          <li><span class="time">12:00</span><span class="item">[현지 조] 조별 모임 및 식사</span></li>
+        </ul>
+        <div class="meet-note-wrap">
+          <div class="meet-note-label">나의 메모</div>
+          <div class="note-wrap">
+            <textarea class="note-ta" id="mn5" placeholder="모임 메모를 입력하세요..."></textarea>
+            <span class="note-badge" id="mnb5">저장됨 ✓</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="meet-card" id="mc6">
+      <div class="meet-card-hdr" onclick="toggleMeet('mc6')">
+        <div class="meet-date-col">
+          <div class="meet-month">Jun</div>
+          <div class="meet-day-num">27</div>
+          <div class="meet-dow">토요일</div>
+        </div>
+        <div class="meet-info">
+          <div class="meet-title">1주차 토요일 (토새깨 &amp; 팀장 회의)</div>
+          <div class="meet-meta">
+            <span>🕐 07:00 – 12:00</span>
+            <span>📍 엘림실 / 엔젤 204호</span>
+          </div>
+        </div>
+        <div class="meet-toggle" id="mt6">▼</div>
+      </div>
+      <div class="meet-body" id="mb6">
+        <ul class="meet-agenda">
+          <li><span class="time">06:30</span><span class="item">토새깨 (엘림실)</span></li>
+          <li><span class="time">07:00</span><span class="item">하계연수 전체 준비기도회 (7:00–8:00)</span></li>
+          <li><span class="time">08:00</span><span class="item">쉬는시간 (8:00–9:00)</span></li>
+          <li><span class="time">09:30</span><span class="item">[TF팀&amp;준비팀] 팀장 회의 — 준비팀·스터디팀 (09:30–10:15)</span></li>
+          <li><span class="time">10:15</span><span class="item">쉬는시간</span></li>
+          <li><span class="time">10:30</span><span class="item">시작 전 기도회 — 인도자: 정민서</span></li>
+          <li><span class="time">10:45</span><span class="item">말씀 묵상</span></li>
+          <li><span class="time">11:15</span><span class="item">[TF팀&amp;준비팀] 전체 회의</span></li>
+          <li><span class="time">12:00</span><span class="item">[준비팀] 준비팀별 모임 및 식사</span></li>
+        </ul>
+        <div class="meet-note-wrap">
+          <div class="meet-note-label">나의 메모</div>
+          <div class="note-wrap">
+            <textarea class="note-ta" id="mn6" placeholder="모임 메모를 입력하세요..."></textarea>
+            <span class="note-badge" id="mnb6">저장됨 ✓</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 2주차 ── -->
+    <div class="phase-label"><span>2주차 주일 (6/28)</span></div>
+
+    <div class="meet-card" id="mc7">
+      <div class="meet-card-hdr" onclick="toggleMeet('mc7')">
+        <div class="meet-date-col">
+          <div class="meet-month">Jun</div>
+          <div class="meet-day-num">28</div>
+          <div class="meet-dow">일요일</div>
+        </div>
+        <div class="meet-info">
+          <div class="meet-title">2주차 경건예배</div>
+          <div class="meet-meta">
+            <span>🕐 09:00 – 12:00</span>
+            <span>📍 엔젤 204호</span>
+          </div>
+        </div>
+        <div class="meet-toggle" id="mt7">▼</div>
+      </div>
+      <div class="meet-body" id="mb7">
+        <ul class="meet-agenda">
+          <li><span class="time">09:00</span><span class="item">경건예배</span></li>
+          <li><span class="time">09:30</span><span class="item">[TF팀&amp;준비팀] 팀장 회의 (09:30–10:15)</span></li>
+        </ul>
+        <div class="meet-note-wrap">
+          <div class="meet-note-label">나의 메모</div>
+          <div class="note-wrap">
+            <textarea class="note-ta" id="mn7" placeholder="모임 메모를 입력하세요..."></textarea>
+            <span class="note-badge" id="mnb7">저장됨 ✓</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="phase-label"><span>2주차 평일 (6/30 화 – 7/4 토) · 월요일 모임 없음</span></div>
+
+    <div class="meet-card" id="mc8">
+      <div class="meet-card-hdr" onclick="toggleMeet('mc8')">
+        <div class="meet-date-col">
+          <div class="meet-month">Jun</div>
+          <div class="meet-day-num">30</div>
+          <div class="meet-dow">화요일</div>
+        </div>
+        <div class="meet-info">
+          <div class="meet-title">2주차 화요일 — 인사이트 탐구</div>
+          <div class="meet-meta">
+            <span>🕐 06:30 – 13:00</span>
+            <span>📍 엔젤 204호</span>
+          </div>
+        </div>
+        <div class="meet-toggle" id="mt8">▼</div>
+      </div>
+      <div class="meet-body" id="mb8">
+        <ul class="meet-agenda">
+          <li><span class="time">06:30</span><span class="item">준비기도회 — 인도자: 이지윤</span></li>
+          <li><span class="time">07:30</span><span class="item">쉬는시간</span></li>
+          <li><span class="time">09:00</span><span class="item">시작 전 기도회 — 인도자: 황우정</span></li>
+          <li><span class="time">09:15</span><span class="item">말씀 묵상</span></li>
+          <li><span class="time">09:45</span><span class="item">[현지 조] 개인 인사이트 탐구</span></li>
+          <li><span class="time">10:30</span><span class="item">[물품/회계팀] 수하물 &amp; 유심 / 환전 관련 설명</span></li>
+          <li><span class="time">11:00</span><span class="item">쉬는시간</span></li>
+          <li><span class="time">11:15</span><span class="item">[현지 조] 탁심 광장 자유시간 일정 짜기 &amp; 발표</span></li>
+          <li><span class="time">12:00</span><span class="item">[현지 조] 조별 모임 및 식사</span></li>
+        </ul>
+        <div class="meet-note-wrap">
+          <div class="meet-note-label">나의 메모</div>
+          <div class="note-wrap">
+            <textarea class="note-ta" id="mn8" placeholder="모임 메모를 입력하세요..."></textarea>
+            <span class="note-badge" id="mnb8">저장됨 ✓</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="meet-card" id="mc9">
+      <div class="meet-card-hdr" onclick="toggleMeet('mc9')">
+        <div class="meet-date-col">
+          <div class="meet-month">Jul</div>
+          <div class="meet-day-num">1</div>
+          <div class="meet-dow">수요일</div>
+        </div>
+        <div class="meet-info">
+          <div class="meet-title">2주차 수요일 — 모의고사</div>
+          <div class="meet-meta">
+            <span>🕐 06:30 – 13:00</span>
+            <span>📍 엔젤 204호</span>
+          </div>
+        </div>
+        <div class="meet-toggle" id="mt9">▼</div>
+      </div>
+      <div class="meet-body" id="mb9">
+        <ul class="meet-agenda">
+          <li><span class="time">06:30</span><span class="item">전체 준비기도회 — 인도자: 김준환 목사</span></li>
+          <li><span class="time">07:00</span><span class="item">쉬는시간</span></li>
+          <li><span class="time">09:00</span><span class="item">시작 전 기도회 — 인도자: 민예지</span></li>
+          <li><span class="time">09:15</span><span class="item">말씀 묵상</span></li>
+          <li><span class="time">09:45</span><span class="item">[스터디] 모의고사 진행</span></li>
+          <li><span class="time">10:45</span><span class="item">쉬는시간</span></li>
+          <li><span class="time">11:00</span><span class="item">[주체찬양 연습]</span></li>
+          <li><span class="time">12:00</span><span class="item">[현지 조] 조별 모임 및 식사</span></li>
+        </ul>
+        <div class="meet-note-wrap">
+          <div class="meet-note-label">나의 메모</div>
+          <div class="note-wrap">
+            <textarea class="note-ta" id="mn9" placeholder="모임 메모를 입력하세요..."></textarea>
+            <span class="note-badge" id="mnb9">저장됨 ✓</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="meet-card" id="mc10">
+      <div class="meet-card-hdr" onclick="toggleMeet('mc10')">
+        <div class="meet-date-col">
+          <div class="meet-month">Jul</div>
+          <div class="meet-day-num">2</div>
+          <div class="meet-dow">목요일</div>
+        </div>
+        <div class="meet-info">
+          <div class="meet-title">2주차 목요일 — 인사이트 나눔</div>
+          <div class="meet-meta">
+            <span>🕐 06:30 – 14:00</span>
+            <span>📍 엔젤 204호</span>
+          </div>
+        </div>
+        <div class="meet-toggle" id="mt10">▼</div>
+      </div>
+      <div class="meet-body" id="mb10">
+        <ul class="meet-agenda">
+          <li><span class="time">06:30</span><span class="item">전체 준비기도회 — 인도자: 김준환 목사</span></li>
+          <li><span class="time">07:00</span><span class="item">쉬는시간</span></li>
+          <li><span class="time">09:00</span><span class="item">시작 전 기도회 — 인도자: 김찬영</span></li>
+          <li><span class="time">09:15</span><span class="item">말씀 묵상</span></li>
+          <li><span class="time">09:45</span><span class="item">[현지 조] 인사이트 나눔 (나눔지 제공)</span></li>
+          <li><span class="time">10:45</span><span class="item">쉬는시간</span></li>
+          <li><span class="time">11:00</span><span class="item">[문서팀] 팀장 요청 배정 시간 (1시간)</span></li>
+          <li><span class="time">12:00</span><span class="item">[현지 조] 조별 모임 및 식사</span></li>
+          <li><span class="time">13:00</span><span class="item">[개인 프로젝트/인사이트] 현지 조별 발표 &amp; 전체 발표</span></li>
+        </ul>
+        <div class="meet-note-wrap">
+          <div class="meet-note-label">나의 메모</div>
+          <div class="note-wrap">
+            <textarea class="note-ta" id="mn10" placeholder="모임 메모를 입력하세요..."></textarea>
+            <span class="note-badge" id="mnb10">저장됨 ✓</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="meet-card" id="mc11">
+      <div class="meet-card-hdr" onclick="toggleMeet('mc11')">
+        <div class="meet-date-col">
+          <div class="meet-month">Jul</div>
+          <div class="meet-day-num">3</div>
+          <div class="meet-dow">금요일</div>
+        </div>
+        <div class="meet-info">
+          <div class="meet-title">2주차 금요일 — 모의고사 2</div>
+          <div class="meet-meta">
+            <span>🕐 06:30 – 12:00</span>
+            <span>📍 엔젤 204호</span>
+          </div>
+        </div>
+        <div class="meet-toggle" id="mt11">▼</div>
+      </div>
+      <div class="meet-body" id="mb11">
+        <ul class="meet-agenda">
+          <li><span class="time">06:30</span><span class="item">전체 준비기도회 — 인도자: 김준환 목사</span></li>
+          <li><span class="time">07:00</span><span class="item">쉬는시간</span></li>
+          <li><span class="time">09:00</span><span class="item">시작 전 기도회 — 인도자: 이지윤</span></li>
+          <li><span class="time">09:15</span><span class="item">말씀 묵상</span></li>
+          <li><span class="time">09:45</span><span class="item">[스터디] 모의고사 진행</span></li>
+          <li><span class="time">10:45</span><span class="item">쉬는시간</span></li>
+          <li><span class="time">11:00</span><span class="item">[주체찬양 연습]</span></li>
+          <li><span class="time">12:00</span><span class="item">[현지 조] 조별 모임 및 식사</span></li>
+        </ul>
+        <div class="meet-note-wrap">
+          <div class="meet-note-label">나의 메모</div>
+          <div class="note-wrap">
+            <textarea class="note-ta" id="mn11" placeholder="모임 메모를 입력하세요..."></textarea>
+            <span class="note-badge" id="mnb11">저장됨 ✓</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="meet-card" id="mc12">
+      <div class="meet-card-hdr" onclick="toggleMeet('mc12')">
+        <div class="meet-date-col">
+          <div class="meet-month">Jul</div>
+          <div class="meet-day-num">4</div>
+          <div class="meet-dow">토요일</div>
+        </div>
+        <div class="meet-info">
+          <div class="meet-title">2주차 토요일 — 팀장 회의 &amp; 물품 수합</div>
+          <div class="meet-meta">
+            <span>🕐 06:30 – 13:00</span>
+            <span>📍 임마누엘실 / 엔젤 204호</span>
+          </div>
+        </div>
+        <div class="meet-toggle" id="mt12">▼</div>
+      </div>
+      <div class="meet-body" id="mb12">
+        <ul class="meet-agenda">
+          <li><span class="time">06:30</span><span class="item">토새깨 (엘림실)</span></li>
+          <li><span class="time">07:00</span><span class="item">담임목사님 인사 (임마누엘실)</span></li>
+          <li><span class="time">07:30</span><span class="item">쉬는시간</span></li>
+          <li><span class="time">09:30</span><span class="item">[TF팀&amp;준비팀] 팀장 회의 (09:30–10:15)</span></li>
+          <li><span class="time">10:15</span><span class="item">쉬는시간</span></li>
+          <li><span class="time">10:30</span><span class="item">준비기도회 — 인도자: 권태민</span></li>
+          <li><span class="time">10:45</span><span class="item">말씀 묵상</span></li>
+          <li><span class="time">11:00</span><span class="item">말씀 묵상</span></li>
+          <li><span class="time">11:30</span><span class="item">[TF팀&amp;준비팀] 전체 회의</span></li>
+          <li><span class="time">12:00</span><span class="item">[준비팀] 준비팀별 모임 및 식사</span></li>
+          <li><span class="time">13:00</span><span class="item">[물품팀] 캐리어 수합, 공용물품 배분</span></li>
+        </ul>
+        <div class="meet-note-wrap">
+          <div class="meet-note-label">나의 메모</div>
+          <div class="note-wrap">
+            <textarea class="note-ta" id="mn12" placeholder="모임 메모를 입력하세요..."></textarea>
+            <span class="note-badge" id="mnb12">저장됨 ✓</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 파송 주일 ── -->
+    <div class="phase-label"><span>파송 주일 (7/12) &amp; 출발</span></div>
+
+    <div class="meet-card" id="mc13">
+      <div class="meet-card-hdr" onclick="toggleMeet('mc13')">
+        <div class="meet-date-col">
+          <div class="meet-month">Jul</div>
+          <div class="meet-day-num">12</div>
+          <div class="meet-dow">일요일</div>
+        </div>
+        <div class="meet-info">
+          <div class="meet-title">✈ 해외연수 파송예배</div>
+          <div class="meet-meta">
+            <span>🕐 09:00 – 종료 후 출발</span>
+            <span>📍 명성교회 본당</span>
+          </div>
+        </div>
+        <div class="meet-toggle" id="mt13">▼</div>
+      </div>
+      <div class="meet-body" id="mb13">
+        <ul class="meet-agenda">
+          <li><span class="time">09:00</span><span class="item">🙏 해외연수 파송예배</span></li>
+        </ul>
+        <div class="meet-note-wrap">
+          <div class="meet-note-label">나의 메모</div>
+          <div class="note-wrap">
+            <textarea class="note-ta" id="mn13" placeholder="모임 메모를 입력하세요..."></textarea>
+            <span class="note-badge" id="mnb13">저장됨 ✓</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="phase-label"><span>연수 출발</span></div>
+    <div style="text-align:center;padding:16px 0 40px">
+      <div style="display:inline-block;background:rgba(201,150,58,.12);border:1px solid rgba(201,150,58,.4);border-radius:12px;padding:16px 28px">
+        <div style="font-family:'Cinzel',serif;font-size:22px;color:var(--gold);font-weight:700">✈ 2026. 07. 13</div>
+        <div style="font-size:12px;color:var(--text-dim);margin-top:4px">KE955 인천 → 이스탄불</div>
+        <div id="depDday" style="margin-top:8px;font-size:13px;font-weight:600;color:var(--gold-light)"></div>
+      </div>
+    </div>
+  </div>
+  </div><!-- /sv-meet -->
+
+  <!-- 체크리스트 서브뷰 -->
+  <div class="sub-view" id="sv-check">
+    <div class="check-view">
+      <div class="check-header">
+        <h2>✓ 연수 준비 체크리스트</h2>
+        <p>항목을 터치하면 완료 처리됩니다</p>
+      </div>
+
+      <!-- 진행률 -->
+      <div class="check-progress-wrap">
+        <div class="check-progress-label">
+          <span>전체 진행률</span>
+          <span id="checkPct">0%</span>
+        </div>
+        <div class="check-progress-track"><div class="check-progress-fill" id="checkFill"></div></div>
+        <div class="check-progress-sub" id="checkSub">0 / 0 완료</div>
+      </div>
+
+      <!-- 툴바 -->
+      <div class="check-toolbar">
+        <button class="tool-btn" id="editToggleBtn" onclick="toggleEditMode()">✏️ 편집</button>
+        <button class="tool-btn danger" onclick="resetChecklist()" style="margin-left:auto">⟳ 초기화</button>
+      </div>
+
+      <div class="check-cat" data-cat="cat1">
+        <div class="check-cat-hdr" onclick="toggleCat('cat1')">
+          <span class="check-cat-icon">📄</span>
+          <span class="check-cat-title">서류 &amp; 행정</span>
+          <span class="check-cat-count" id="cnt-cat1"></span>
+          <span class="check-cat-arrow" id="arr-cat1">▼</span>
+        </div>
+        <div class="check-cat-body open" id="body-cat1">
+          <div class="check-item" data-id="c1">
+            <div class="check-box"></div>
+            <div class="check-label">여권 유효기간 확인</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="check-item" data-id="c2">
+            <div class="check-box"></div>
+            <div class="check-label">여권 사본 2부 준비</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="check-item" data-id="c3">
+            <div class="check-box"></div>
+            <div class="check-label">튀르키예 e-Visa 신청 완료</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="check-item" data-id="c4">
+            <div class="check-box"></div>
+            <div class="check-label">항공권 e-티켓 출력 또는 저장</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="check-item" data-id="c5">
+            <div class="check-box"></div>
+            <div class="check-label">여행자 보험 가입 완료</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="check-item" data-id="c6">
+            <div class="check-box"></div>
+            <div class="check-label">비상 연락처 목록 저장</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="check-item" data-id="c7">
+            <div class="check-box"></div>
+            <div class="check-label">pre-insight note 완성</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="add-item-row">
+            <input class="add-item-input" type="text" placeholder="항목 추가..." maxlength="60">
+            <button class="add-item-btn" onclick="addItem(this)">＋</button>
+          </div>
+        </div>
+      </div>
+      <div class="check-cat" data-cat="cat2">
+        <div class="check-cat-hdr" onclick="toggleCat('cat2')">
+          <span class="check-cat-icon">👕</span>
+          <span class="check-cat-title">의류 &amp; 복장</span>
+          <span class="check-cat-count" id="cnt-cat2"></span>
+          <span class="check-cat-arrow" id="arr-cat2">▼</span>
+        </div>
+        <div class="check-cat-body open" id="body-cat2">
+          <div class="check-item" data-id="c8">
+            <div class="check-box"></div>
+            <div class="check-label">긴 소매 셔츠</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="check-item" data-id="c9">
+            <div class="check-box"></div>
+            <div class="check-label">긴 바지 또는 치마</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="check-item" data-id="c10">
+            <div class="check-box"></div>
+            <div class="check-label">수영복 + 수영모</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="check-item" data-id="c11">
+            <div class="check-box"></div>
+            <div class="check-label">걷기 편한 운동화</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="check-item" data-id="c12">
+            <div class="check-box"></div>
+            <div class="check-label">슬리퍼 또는 샌달</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="check-item" data-id="c13">
+            <div class="check-box"></div>
+            <div class="check-label">경량 자켓 또는 가디건</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="check-item" data-id="c14">
+            <div class="check-box"></div>
+            <div class="check-label">모자 또는 선캡</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="check-item" data-id="c15">
+            <div class="check-box"></div>
+            <div class="check-label">여성: 스카프 또는 숄</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="add-item-row">
+            <input class="add-item-input" type="text" placeholder="항목 추가..." maxlength="60">
+            <button class="add-item-btn" onclick="addItem(this)">＋</button>
+          </div>
+        </div>
+      </div>
+      <div class="check-cat" data-cat="cat3">
+        <div class="check-cat-hdr" onclick="toggleCat('cat3')">
+          <span class="check-cat-icon">💊</span>
+          <span class="check-cat-title">의약품 &amp; 위생</span>
+          <span class="check-cat-count" id="cnt-cat3"></span>
+          <span class="check-cat-arrow" id="arr-cat3">▼</span>
+        </div>
+        <div class="check-cat-body open" id="body-cat3">
+          <div class="check-item" data-id="c16">
+            <div class="check-box"></div>
+            <div class="check-label">소화제·지사제·진통제</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="check-item" data-id="c17">
+            <div class="check-box"></div>
+            <div class="check-label">감기약·코감기약</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="check-item" data-id="c18">
+            <div class="check-box"></div>
+            <div class="check-label">밴드 및 상처 소독약</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="check-item" data-id="c19">
+            <div class="check-box"></div>
+            <div class="check-label">자외선 차단제</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="check-item" data-id="c20">
+            <div class="check-box"></div>
+            <div class="check-label">개인 상비약</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="check-item" data-id="c21">
+            <div class="check-box"></div>
+            <div class="check-label">마스크 여분</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="check-item" data-id="c22">
+            <div class="check-box"></div>
+            <div class="check-label">손 소독제</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="add-item-row">
+            <input class="add-item-input" type="text" placeholder="항목 추가..." maxlength="60">
+            <button class="add-item-btn" onclick="addItem(this)">＋</button>
+          </div>
+        </div>
+      </div>
+      <div class="check-cat" data-cat="cat4">
+        <div class="check-cat-hdr" onclick="toggleCat('cat4')">
+          <span class="check-cat-icon">📱</span>
+          <span class="check-cat-title">전자기기 &amp; 통신</span>
+          <span class="check-cat-count" id="cnt-cat4"></span>
+          <span class="check-cat-arrow" id="arr-cat4">▼</span>
+        </div>
+        <div class="check-cat-body open" id="body-cat4">
+          <div class="check-item" data-id="c23">
+            <div class="check-box"></div>
+            <div class="check-label">현지 유심(SIM) 또는 포켓 와이파이 준비</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="check-item" data-id="c24">
+            <div class="check-box"></div>
+            <div class="check-label">충전기 및 멀티탭</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="check-item" data-id="c25">
+            <div class="check-box"></div>
+            <div class="check-label">220V 돼지코 어댑터 (튀르키예 플러그 Type F)</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="check-item" data-id="c26">
+            <div class="check-box"></div>
+            <div class="check-label">보조배터리 (기내 반입용, 20,000mAh 이하)</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="check-item" data-id="c27">
+            <div class="check-box"></div>
+            <div class="check-label">카메라 + 메모리카드 여분</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="check-item" data-id="c28">
+            <div class="check-box"></div>
+            <div class="check-label">이어폰</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="add-item-row">
+            <input class="add-item-input" type="text" placeholder="항목 추가..." maxlength="60">
+            <button class="add-item-btn" onclick="addItem(this)">＋</button>
+          </div>
+        </div>
+      </div>
+      <div class="check-cat" data-cat="cat5">
+        <div class="check-cat-hdr" onclick="toggleCat('cat5')">
+          <span class="check-cat-icon">💳</span>
+          <span class="check-cat-title">현금 &amp; 결제</span>
+          <span class="check-cat-count" id="cnt-cat5"></span>
+          <span class="check-cat-arrow" id="arr-cat5">▼</span>
+        </div>
+        <div class="check-cat-body open" id="body-cat5">
+          <div class="check-item" data-id="c29">
+            <div class="check-box"></div>
+            <div class="check-label">튀르키예 리라(TRY) 환전</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="check-item" data-id="c30">
+            <div class="check-box"></div>
+            <div class="check-label">USD 또는 EUR 비상용 현금</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="check-item" data-id="c31">
+            <div class="check-box"></div>
+            <div class="check-label">해외 결제 가능한 신용/체크카드 확인</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="add-item-row">
+            <input class="add-item-input" type="text" placeholder="항목 추가..." maxlength="60">
+            <button class="add-item-btn" onclick="addItem(this)">＋</button>
+          </div>
+        </div>
+      </div>
+      <div class="check-cat" data-cat="cat6">
+        <div class="check-cat-hdr" onclick="toggleCat('cat6')">
+          <span class="check-cat-icon">✝️</span>
+          <span class="check-cat-title">신앙 &amp; 연수 준비</span>
+          <span class="check-cat-count" id="cnt-cat6"></span>
+          <span class="check-cat-arrow" id="arr-cat6">▼</span>
+        </div>
+        <div class="check-cat-body open" id="body-cat6">
+          <div class="check-item" data-id="c32">
+            <div class="check-box"></div>
+            <div class="check-label">성경</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="check-item" data-id="c33">
+            <div class="check-box"></div>
+            <div class="check-label">7교회 묵상 자료 인쇄 또는 저장</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="check-item" data-id="c34">
+            <div class="check-box"></div>
+            <div class="check-label">연수 일정표 출력</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="check-item" data-id="c35">
+            <div class="check-box"></div>
+            <div class="check-label">개인 기도 제목 정리</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="check-item" data-id="c36">
+            <div class="check-box"></div>
+            <div class="check-label">현지 조별 역할 숙지</div>
+            
+            <button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>
+          </div>
+          <div class="add-item-row">
+            <input class="add-item-input" type="text" placeholder="항목 추가..." maxlength="60">
+            <button class="add-item-btn" onclick="addItem(this)">＋</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="text-align:center;padding:24px 0 40px">
+        <span style="font-size:10px;color:var(--text-muted)">편집 모드에서 항목 추가·삭제 가능</span>
+      </div>
+    </div>
+  </div><!-- /sv-check -->
+
+</div><!-- /view-sched -->
+
+<!-- MODAL (popup) -->
+<div class="modal-bg" id="modalBg"></div>
+<div class="modal" id="modal">
+  <div class="modal-handle"></div>
+  <div class="modal-hdr">
+    <div class="modal-day" id="mDay"></div>
+    <div class="modal-name" id="mName"></div>
+    <div class="modal-sub" id="mSub"></div>
+    <a class="modal-gmap" id="mGmap" href="#" target="_blank" rel="noopener" style="display:none">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 6-9 13-9 13S3 16 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      Google 지도에서 보기
+    </a>
+  </div>
+  <div class="modal-body" id="mBody"></div>
+  <div class="modal-close-bar">
+    <button class="modal-close-btn" onclick="closeModal()">✕ &nbsp;닫기</button>
+  </div>
+</div>
+
+<script>
+/* ══ TAB SWITCH ══ */
+function switchTab(t){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('tab-'+t).classList.add('active');
+  document.getElementById('view-'+t).classList.add('active');
+  if(t==='map') setTimeout(()=>map&&map.invalidateSize(),50);
+}
+
+/* ══ STORAGE ══ */
+function sk(id){return'mda26_'+id}
+function gl(id){try{return localStorage.getItem(sk(id))}catch{return null}}
+function sl(id,v){try{localStorage.setItem(sk(id),v)}catch{}}
+
+/* ══ D-DAY ══ */
+function dday(dateStr){
+  const now=new Date(); now.setHours(0,0,0,0);
+  const target=new Date(dateStr); target.setHours(0,0,0,0);
+  const diff=Math.round((target-now)/(1000*60*60*24));
+  if(diff>0) return {label:'D-'+diff,cls:'dday-future'};
+  if(diff===0) return {label:'D-DAY',cls:'dday-today'};
+  return {label:'완료',cls:'dday-past'};
+}
+function setDdays(){
+  /* departure countdown only */
+  const dep=dday('2026-07-13');
+  const depEl=document.getElementById('depDday');
+  if(depEl){
+    if(dep.label==='완료') depEl.textContent='연수 완료';
+    else if(dep.label==='D-DAY') depEl.textContent='🎉 오늘 출발!';
+    else depEl.textContent='출발까지 '+dep.label;
+  }
+}
+setDdays();
+
+/* ══ MEETING NOTES ══ */
+function initMeetNotes(){
+  [1,2,3,4,5,6,7,8,9,10,11,12,13].forEach(i=>{
+    const ta=document.getElementById('mn'+i);
+    const nb=document.getElementById('mnb'+i);
+    if(!ta) return;
+    const saved=gl('meet'+i);
+    if(saved) ta.value=saved;
+    let st=null;
+    ta.addEventListener('input',()=>{
+      clearTimeout(st);
+      st=setTimeout(()=>{
+        sl('meet'+i,ta.value);
+        nb.classList.add('show');
+        setTimeout(()=>nb.classList.remove('show'),1800);
+      },500);
+    });
+  });
+}
+initMeetNotes();
+
+/* ══ MEETING ACCORDION ══ */
+function toggleMeet(id){
+  const body=document.getElementById('m'+id.replace('mc','b'));
+  const tog=document.getElementById('m'+id.replace('mc','t'));
+  const open=body.classList.toggle('open');
+  tog.classList.toggle('open',open);
+  if(open) initMeetNotes();
+}
+
+/* ══ MAP DATA ══ */
+const PL=[
+  {id:"istanbul",name:"이스탄불",sub:"Istanbul — 비잔티움·콘스탄티노폴리스",
+   day:"1·8·9·10일차",days:[1,8,9,10],type:"main",lat:41.008,lng:28.978,
+   gq:"Istanbul Turkey Hagia Sophia",
+   hotel:{name:"CLARION HOTEL ISTANBUL MAHMUTBEY",stars:"★★★★★",nights:"1·8·9일차 (3박)",
+    addr:"Mahmutbey, Peyami Safa Cd. No:44, 34218 Bağcılar/İstanbul",
+    tel:"+90 212 445 45 86",web:"https://www.choicehotels.com/turkey/istanbul/clarion-hotels/tu041"},
+   meals:[
+    {day:"8일차 (7/20)",lunch:"MIDAS — 스프·샐러드·사츠카우르마·과일",dinner:"호텔식"},
+    {day:"9일차 (7/21)",lunch:"VILLA CASTELIO — 오픈부페",dinner:"호텔식"},
+    {day:"10일차 (7/22)",lunch:"KIRCICEGI — 계절샐러드·닭고기베이티",dinner:"귀국"},
+   ],
+   tr:[{l:"KE955 인천→이스탄불 (1일차)",c:"#4FA3E0"},{l:"KE956 이스탄불→인천 (10일차)",c:"#4FA3E0"}],
+   si:[
+    {n:"아야 소피아",d:"성 소피아 사원 — 동로마 제국 시대 대성당.",t:"th",gq:"Hagia Sophia Istanbul"},
+    {n:"블루 모스크 & 히포드럼",d:"BC 15세기 오벨리스크. 히포드럼 광장.",t:"th",gq:"Blue Mosque Istanbul"},
+    {n:"발랏 지구",d:"성 요르고스 성당, 파나르 신학교 조망.",t:"tc",gq:"Balat Istanbul"},
+    {n:"탁심 광장",d:"10일차 이스티클랄 거리 자유시간.",t:"th",gq:"Taksim Square Istanbul"},
+    {n:"보스포러스 유람선",d:"8일차 — 유럽·아시아를 가르는 해협 유람.",t:"tn",gq:"Bosphorus Strait Istanbul"},
+    {n:"그랜드 바자르",d:"소매치기 주의 — 자유 쇼핑.",t:"th",gq:"Grand Bazaar Istanbul"},
+   ],
+   verse:null,dn:"8일차 이스탄불 도착 후 보스포러스 유람. 9일차 성지 순례. 10일차 탁심 자유시간 후 21:20 출발."},
+  {id:"pamukkale",name:"파묵칼레 (데니즐리)",sub:"Pamukkale / Denizli — 하얀 석회봉",
+   day:"2·3·4일차",days:[2,3,4],type:"main",lat:37.920,lng:29.118,
+   gq:"Pamukkale Denizli Turkey",
+   hotel:{name:"LYCUS RIVER TERMAL HOTEL",stars:"★★★★★",nights:"2·3일차 (2박)",
+    addr:"Karahayit Mevkii Pamukkale, 20290",
+    tel:"+90 258 259 10 49",web:"http://www.lycusrivertermalhotel.com/"},
+   meals:[
+    {day:"2일차 (7/14)",lunch:"HITIT — 오픈부페",dinner:"호텔식"},
+    {day:"3일차 (7/15)",lunch:"BERGAMA — 오픈부페",dinner:"호텔식"},
+    {day:"4일차 (7/16)",lunch:"MANZARA — 화덕빵·메제·샐러드·타욱쉬쉬케밥",dinner:"호텔식 (쿠샤다시)"},
+   ],
+   tr:[{l:"TK2580 이스탄불→데니즐리 11:20",c:"#4FA3E0"},{l:"전용차량",c:"#C9963A"}],
+   si:[
+    {n:"파묵칼레 석회봉",d:"세계자연유산 — 탄산칼슘 석회화 계단식 온천.",t:"tn",gq:"Pamukkale Cotton Castle Turkey"},
+    {n:"히에라볼리",d:"사도 빌립의 순교터가 있는 고대 도시.",t:"tc",gq:"Hierapolis Pamukkale"},
+    {n:"라오디게아 교회",d:"소아시아 7교회 — 미지근한 교회 (계 3:14-22).",t:"tc",gq:"Laodicea ancient city Turkey"},
+    {n:"골로새",d:"바울서신 골로새서 배경. 골로새 온천 (수영복 필요).",t:"tp",gq:"Colossae ancient city Turkey"},
+   ],
+   verse:{t:"나는 네 행위를 아노니 네가 차지도 아니하고 뜨겁지도 아니하도다",r:"계시록 3:15"},
+   dn:"수영복 및 수영모 필요. 파묵칼레 2박."},
+  {id:"antioch",name:"비시디아 안디옥",sub:"Antioch of Pisidia — 얄바츠 (Yalvaç)",
+   day:"2일차",days:[2],type:"site",lat:38.300,lng:31.072,
+   gq:"Antioch of Pisidia Yalvac Turkey",hotel:null,meals:null,
+   tr:[{l:"전용차량 (파묵칼레에서 약 2시간)",c:"#C9963A"}],
+   si:[{n:"비시디아 안디옥 유적",d:"바울과 바나바가 유대인 회당에서 복음을 전한 역사적 장소 (행 13장).",t:"tp",gq:"Antioch Pisidia archaeological site"}],
+   verse:{t:"하나님이 죽은 자 가운데서 그를 살리셨으니 여러 날 동안 자들에게 나타나셨느니라",r:"사도행전 13:30"},
+   dn:"데니즐리에서 약 100km 우회. 당일 왕복 후 파묵칼레 복귀."},
+  {id:"laodicea",name:"라오디게아 · 골로새",sub:"Laodicea & Colossae",
+   day:"3일차",days:[3],type:"site",lat:37.834,lng:29.107,
+   gq:"Laodicea ancient city Denizli Turkey",hotel:null,meals:null,
+   tr:[{l:"전용차량",c:"#C9963A"}],
+   si:[
+    {n:"라오디게아 교회",d:"소아시아 7교회 — 미지근한 교회. 고대 도시 유적.",t:"tc",gq:"Laodicea ancient city Turkey"},
+    {n:"골로새 온천",d:"바울서신 배경 도시. 골로새 온천 (수영복 필요).",t:"tp",gq:"Colossae ancient city Turkey"},
+   ],
+   verse:null,dn:"파묵칼레 숙박지에서 당일 방문 후 복귀."},
+  {id:"miletus",name:"밀레도",sub:"Miletus — 에게해 고대 항구도시",
+   day:"4일차",days:[4],type:"site",lat:37.530,lng:27.278,
+   gq:"Miletus ancient city Turkey",hotel:null,meals:null,
+   tr:[{l:"전용차량 (아이든 경유)",c:"#C9963A"}],
+   si:[{n:"밀레도 고대 항구",d:"에베소 장로들을 불러 고별사를 전한 장소 (행 20장).",t:"tp",gq:"Miletus ancient theater Turkey"}],
+   verse:{t:"내 달려갈 길과 주 예수께 받은 사명을 마치려 함에는 나의 생명조차 귀한 것으로 여기지 아니하노라",r:"사도행전 20:24"},
+   dn:"파묵칼레에서 출발, 아이든 경유. 밀레도 방문 후 쿠샤다시 이동."},
+  {id:"ephesus",name:"쿠샤다시 · 에베소",sub:"Kuşadası & Ephesus — 소아시아의 심장",
+   day:"4·5일차",days:[4,5],type:"main",lat:37.939,lng:27.341,
+   gq:"Ephesus archaeological site Selcuk Turkey",
+   hotel:{name:"Çidihan Hotel",stars:"★★★",nights:"4·5일차 (2박)",
+    addr:"Öztürk Caddesi No:37, Güzelçamlı, 09400 Kuşadası/Aydın",
+    tel:"+90 256 999 18 67",web:"https://cidihanhotel.net/tr"},
+   meals:[
+    {day:"4일차 (7/16)",lunch:"MANZARA — 화덕빵·메제·샐러드·타욱쉬쉬케밥",dinner:"호텔식"},
+    {day:"5일차 (7/17)",lunch:"HITIT — 오픈부페",dinner:"호텔식"},
+   ],
+   tr:[{l:"전용차량",c:"#C9963A"}],
+   si:[
+    {n:"고대 에베소 유적",d:"24,000명 수용 대극장. 소아시아 7교회 에베소 교회 스터디.",t:"tc",gq:"Ephesus Archaeological Site Turkey"},
+    {n:"셀수스 도서관",d:"AD 117년 완공. 에베소 최아름다운 건축물.",t:"th",gq:"Library of Celsus Ephesus"},
+    {n:"사도 요한 기념교회",d:"요한의 무덤 위에 세워진 교회 (Basilica of St. John).",t:"tc",gq:"Basilica of Saint John Selcuk Turkey"},
+   ],
+   verse:{t:"그러나 너를 책망할 것이 있나니 너의 처음 사랑을 버렸느니라",r:"계시록 2:4"},
+   dn:"5일차는 가장 여유로운 날. 이동 없이 에베소와 쿠샤다시 중심."},
+  {id:"smyrna",name:"서머나 (이즈미르)",sub:"Smyrna / İzmir — 환난 속 충성의 교회",
+   day:"6일차",days:[6],type:"site",lat:38.418,lng:27.128,
+   gq:"Polycarp Martyrium Izmir Turkey",hotel:null,meals:null,
+   tr:[{l:"전용차량",c:"#C9963A"}],
+   si:[{n:"폴리캅 기념교회",d:"소아시아 7교회 서머나 교회 (계 2:8-11). 순교자 폴리캅의 순교지.",t:"tc",gq:"Church of St Polycarp Izmir"}],
+   verse:{t:"네가 죽도록 충성하라 그리하면 내가 생명의 관을 네게 주리라",r:"계시록 2:10"},
+   dn:"쿠샤다시에서 출발. 서머나 순례 후 버가모로 이동."},
+  {id:"pergamon",name:"버가모 (배르가마)",sub:"Pergamon / Bergama — 사단의 권좌",
+   day:"6일차",days:[6],type:"main",lat:39.132,lng:27.184,
+   gq:"Pergamon Acropolis Bergama Turkey",
+   hotel:{name:"RAMADA BY WYNDHAM SOMA HOTEL",stars:"★★★★",nights:"6일차 (1박)",
+    addr:"Turgutalp, 306 Bergama Street, 45500 Soma/Manisa",
+    tel:"+90 236 615 24 24",web:"https://www.wyndhamhotels.com/tr-tr/ramada/soma-turkiye/ramada-soma/overview"},
+   meals:[
+    {day:"6일차 (7/18)",lunch:"BERGAMA — 오픈부페",dinner:"호텔식"},
+   ],
+   tr:[{l:"전용차량",c:"#C9963A"}],
+   si:[
+    {n:"버가모 아크로폴리스",d:"소아시아 7교회 버가모 교회 (계 2:12-17). 케이블카 이용.",t:"tc",gq:"Pergamon Acropolis Bergama"},
+    {n:"아스클레피온",d:"고대 세계 최고의 의료 센터. 갈레노스의 고향.",t:"th",gq:"Asclepion Bergama Turkey"},
+   ],
+   verse:{t:"거기는 사탄의 권좌가 있는 데라 네가 내 이름을 굳게 잡아 믿음을 저버리지 아니하였도다",r:"계시록 2:13"},
+   dn:"버가모 순례 후 소마 호텔 1박."},
+  {id:"assos",name:"앗소 · 드로아",sub:"Assos & Alexandria Troas",
+   day:"7일차",days:[7],type:"site",lat:39.490,lng:26.336,
+   gq:"Assos ancient city Behramkale Turkey",hotel:null,meals:null,
+   tr:[{l:"전용차량 + 도보 순례",c:"#C9963A"}],
+   si:[
+    {n:"드로아-앗소 로마길 순례",d:"행 20:13 바울이 홀로 걸었던 로마길 도보 순례.",t:"tp",gq:"Alexandria Troas ruins Turkey"},
+    {n:"앗소 아크로폴리스",d:"에게해를 바라보는 고대 도시 유적.",t:"th",gq:"Assos ancient city Behramkale"},
+    {n:"알렉산더 드로아 항",d:"행 16:8 바울이 마케도냐 환상을 본 항구.",t:"tp",gq:"Alexandria Troas Turkey"},
+   ],
+   verse:{t:"마게도냐 사람 하나가 서서 이르되 마게도냐로 건너와서 우리를 도우라",r:"사도행전 16:9"},
+   dn:"주일 예배 후 출발. 드로아에서 트로이 방문 후 차낙칼레 이동."},
+  {id:"troy",name:"트로이 · 차낙칼레",sub:"Troy & Çanakkale",
+   day:"7·8일차",days:[7,8],type:"main",lat:39.957,lng:26.238,
+   gq:"Troy ancient city Canakkale Turkey",
+   hotel:{name:"FIGEN HOTEL",stars:"★★★",nights:"7일차 (1박)",
+    addr:"İsmetpaşa, Mercan Sk. No:41, 17100 Çanakkale Merkez/Çanakkale",
+    tel:"+90 553 911 02 14",web:"https://hotelfigen.com/"},
+   meals:[
+    {day:"7일차 (7/19)",lunch:"MANZARA — 화덕빵·메제·샐러드·타욱쉬쉬케밥",dinner:"HALISDURM — 샐러드·칙쿄프테·라흐마준·우르파케밥·카트멜+차이"},
+    {day:"8일차 (7/20)",lunch:"TAMARA — 스프·빵·샐러드·닭날개케밥·과일",dinner:"TEBEK — 고등어조림·잡채·미역국·파전·계절반찬4종·과일"},
+   ],
+   tr:[{l:"전용차량",c:"#C9963A"}],
+   si:[
+    {n:"트로이 유적",d:"호메로스의 일리아드 배경 — 세계문화유산. 목마 복제품.",t:"th",gq:"Troy ancient city Turkey"},
+    {n:"1915 차낙칼레 대교",d:"8일차 — 다르다넬스 해협 세계 최장 현수교 횡단.",t:"th",gq:"1915 Canakkale Bridge Turkey"},
+   ],
+   verse:null,dn:"7일차 차낙칼레 숙박. 8일차 대교 횡단 후 이스탄불 이동 (약 4시간)."},
+];
+
+/* ══ MAP INIT ══ */
+const map=L.map('map',{center:[38.9,30.5],zoom:7,zoomControl:true,minZoom:5,maxZoom:18});
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  maxZoom:19,crossOrigin:true,
+}).addTo(map);
+const tilePane=map.getPanes().tilePane;
+tilePane.style.filter='invert(1) hue-rotate(180deg) saturate(1.35) brightness(0.85)';
+map.zoomControl.setPosition('bottomright');
+
+/* ══ ROUTES ══ */
+const ROUTES=[
+  {coords:[[41.008,28.978],[37.920,29.118]],color:"#4FA3E0",dash:"10 6",weight:2},
+  {coords:[[37.920,29.118],[38.300,31.072]],color:"#C9963A",dash:"8 5",weight:2,opacity:0.45},
+  {coords:[[37.920,29.118],[37.834,29.107]],color:"#C9963A",dash:"",weight:2.5},
+  {coords:[[37.920,29.118],[37.530,27.278]],color:"#C9963A",dash:"",weight:2.5},
+  {coords:[[37.530,27.278],[37.939,27.341]],color:"#C9963A",dash:"",weight:2.5},
+  {coords:[[37.939,27.341],[38.418,27.128]],color:"#C9963A",dash:"",weight:2.5},
+  {coords:[[38.418,27.128],[39.132,27.184]],color:"#C9963A",dash:"",weight:2.5},
+  {coords:[[39.132,27.184],[39.490,26.336]],color:"#C9963A",dash:"",weight:2.5},
+  {coords:[[39.490,26.336],[39.957,26.238]],color:"#C9963A",dash:"",weight:2.5},
+  {coords:[[39.957,26.238],[41.008,28.978]],color:"#C9963A",dash:"",weight:2.5},
+];
+ROUTES.forEach(r=>{
+  const o={color:r.color,weight:r.weight||2.5,opacity:r.opacity||0.82};
+  if(r.dash) o.dashArray=r.dash;
+  L.polyline(r.coords,o).addTo(map);
+});
+
+/* ══ PINS ══ */
+const markers={};
+const tagNames={tc:"교회·신앙",th:"역사·유적",tn:"자연·체험",tp:"바울 여정"};
+
+function makeIcon(p,dimmed){
+  const col=p.type==="main"?"#C9963A":"#9B59B6";
+  const sz=p.type==="main"?34:26;
+  const ico=p.type==="main"?"✦":"◈";
+  const fs=p.type==="main"?13:10;
+  const stem=p.type==="main"?14:10;
+  const lfs=p.type==="main"?11:9;
+  const lp=p.type==="main"?"4px 10px":"3px 8px";
+  const op=dimmed?"0.18":"1";
+  const pd=(Math.random()*2).toFixed(1);
+  return L.divIcon({
+    html:`<div class="pin-wrap" style="opacity:${op};transition:opacity .3s">
+<div class="pin-pulse" style="width:${sz+14}px;height:${sz+14}px;border-color:${col};top:-7px;left:-7px;animation-delay:${pd}s"></div>
+<div class="pin-circle" style="width:${sz}px;height:${sz}px;background:${col};font-size:${fs}px;">${ico}</div>
+<div class="pin-stem" style="height:${stem}px;background:${col};width:2px;opacity:.75"></div>
+<div class="pin-label" style="font-size:${lfs}px;padding:${lp};border-color:${col}33">${p.name}</div>
+</div>`,
+    className:'',iconSize:[120,sz+stem+30],iconAnchor:[60,sz+stem+2],
+  });
+}
+
+PL.forEach(p=>{
+  const m=L.marker([p.lat,p.lng],{icon:makeIcon(p,false)})
+    .addTo(map)
+    .on('click',()=>openModal(p.id));
+  markers[p.id]={marker:m,data:p};
+});
+
+/* ══ MODAL ══ */
+function openModal(id){
+  const p=PL.find(x=>x.id===id); if(!p) return;
+  document.getElementById('mDay').textContent=p.day;
+  document.getElementById('mName').textContent=p.name;
+  document.getElementById('mSub').textContent=p.sub;
+  const gmapEl=document.getElementById('mGmap');
+  gmapEl.href='https://www.google.com/maps/search/'+encodeURIComponent(p.gq);
+  gmapEl.style.display='inline-flex';
+
+  let h='';
+  if(p.tr&&p.tr.length){
+    h+='<div class="sec"><div class="sec-t">이동 수단</div>';
+    p.tr.forEach(t=>{h+=`<span class="tpill"><span class="dot" style="background:${t.c}"></span>${t.l}</span>`});
+    h+='</div>';
+  }
+  if(p.si&&p.si.length){
+    h+='<div class="sec"><div class="sec-t">방문 장소 &amp; 성지</div>';
+    p.si.forEach(s=>{
+      const gu='https://www.google.com/maps/search/'+encodeURIComponent(s.gq);
+      h+=`<div class="si"><div class="si-name">${s.n}</div><div class="si-desc">${s.d}</div>
+<div class="si-row"><span class="si-tag ${s.t}">${tagNames[s.t]}</span>
+<a class="si-gmap" href="${gu}" target="_blank" rel="noopener">
+<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 6-9 13-9 13S3 16 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>Google 지도</a></div></div>`;
+    });
+    h+='</div>';
+  }
+  if(p.verse){
+    h+=`<div class="sec"><div class="sec-t">관련 말씀</div><div class="verse">&ldquo;${p.verse.t}&rdquo;<cite>${p.verse.r}</cite></div></div>`;
+  }
+  if(p.hotel){
+    const hw=p.hotel.web?`<a href="${p.hotel.web}" target="_blank" rel="noopener" style="font-size:10px;color:#4FA3E0;text-decoration:none;margin-left:6px;">🔗 홈페이지</a>`:'';
+    h+=`<div class="sec"><div class="sec-t">🏨 숙박</div><div class="hotel-box">
+<div class="hotel-name">${p.hotel.name}${hw}</div>
+<div class="hotel-stars">${p.hotel.stars} &nbsp;<span style="font-size:10px;color:var(--text-muted)">${p.hotel.nights}</span></div>
+<div style="font-size:11px;color:var(--text-muted);margin-top:5px;line-height:1.6">
+📍 ${p.hotel.addr}<br>📞 <a href="tel:${p.hotel.tel}" style="color:var(--text-dim);text-decoration:none">${p.hotel.tel}</a>
+</div></div></div>`;
+  }
+  if(p.meals&&p.meals.length){
+    h+='<div class="sec"><div class="sec-t">🍽️ 식사 일정</div>';
+    p.meals.forEach(m=>{
+      h+=`<div style="background:var(--dark3);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:10px 13px;margin-bottom:7px">
+<div style="font-size:10px;color:var(--gold);font-weight:600;margin-bottom:6px">${m.day}</div>
+<div style="font-size:12px;color:var(--text-dim);line-height:1.7">
+🌞 <span style="color:var(--text)">중식</span> ${m.lunch}<br>
+🌙 <span style="color:var(--text)">석식</span> ${m.dinner}
+</div></div>`;
+    });
+    h+='</div>';
+  }
+  const saved=gl(p.id);
+  const nv=saved!==null?saved:(p.dn||'');
+  h+=`<div class="sec"><div class="sec-t">나의 메모 <span style="font-size:9px;color:var(--text-muted);letter-spacing:0;text-transform:none;font-weight:400">(자동 저장)</span></div>
+<div class="note-wrap"><textarea class="note-ta" id="nta_${p.id}" placeholder="메모를 입력하세요...">${nv}</textarea>
+<span class="note-badge" id="nb_${p.id}">저장됨 ✓</span></div></div>`;
+
+  document.getElementById('mBody').innerHTML=h;
+  document.getElementById('modalBg').classList.add('show');
+  document.getElementById('modal').classList.add('show');
+
+  const ta=document.getElementById('nta_'+p.id);
+  const nb=document.getElementById('nb_'+p.id);
+  let st=null;
+  ta.addEventListener('input',()=>{
+    clearTimeout(st);
+    st=setTimeout(()=>{sl(p.id,ta.value);nb.classList.add('show');setTimeout(()=>nb.classList.remove('show'),1800);},500);
+  });
+}
+function closeModal(){
+  document.getElementById('modalBg').classList.remove('show');
+  document.getElementById('modal').classList.remove('show');
+}
+
+/* ══ DAY HIGHLIGHT ══ */
+function hlDay(day,btn){
+  document.querySelectorAll('.day-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(day===0){
+    PL.forEach(p=>markers[p.id].marker.setIcon(makeIcon(p,false)));
+    closeModal();
+    map.flyTo([38.9,30.5],7,{duration:1});
+    return;
+  }
+  let fid=null;
+  PL.forEach(p=>{
+    const m=p.days.includes(day);
+    markers[p.id].marker.setIcon(makeIcon(p,!m));
+    if(m&&!fid) fid=p.id;
+  });
+  if(fid){const fp=PL.find(x=>x.id===fid);map.flyTo([fp.lat,fp.lng],10,{duration:1.2});openModal(fid);}
+}
+
+/* swipe down to close modal on mobile */
+let touchY0=null;
+document.getElementById('modal').addEventListener('touchstart',e=>{touchY0=e.touches[0].clientY;},{passive:true});
+document.getElementById('modal').addEventListener('touchend',e=>{
+  if(touchY0!==null&&e.changedTouches[0].clientY-touchY0>60) closeModal();
+  touchY0=null;
+},{passive:true});
+
+/* ══ SUB TAB ══ */
+function switchSubTab(t){
+  document.querySelectorAll('.sub-tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.sub-view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('stab-'+t).classList.add('active');
+  document.getElementById('sv-'+t).classList.add('active');
+}
+
+/* ══ MODAL BG CLOSE (desktop fix) ══ */
+
+/* ══ CHECKLIST ══ */
+const CK_PRE='mda26_ck_',SH_PRE='mda26_sh_',CU_PRE='mda26_cu_';
+function lsG(k){try{return localStorage.getItem(k)}catch{return null}}
+function lsS(k,v){try{localStorage.setItem(k,v)}catch{}}
+function lsD(k){try{localStorage.removeItem(k)}catch{}}
+
+function toggleCheck(el){
+  if(document.getElementById('sv-check').classList.contains('edit-mode')) return;
+  const id=el.getAttribute('data-id');
+  const done=el.classList.toggle('done');
+  lsS(CK_PRE+id,done?'1':'0');
+
+  updateProgress();
+  const cat=el.closest('.check-cat');
+  if(cat) updateCatCount(cat);
+}
+function updateProgress(){
+  const all=document.querySelectorAll('#sv-check .check-item');
+  const done=document.querySelectorAll('#sv-check .check-item.done');
+  const pct=all.length?Math.round(done.length/all.length*100):0;
+  const fill=document.getElementById('checkFill');
+  const pctEl=document.getElementById('checkPct');
+  const subEl=document.getElementById('checkSub');
+  if(fill) fill.style.width=pct+'%';
+  if(pctEl) pctEl.textContent=pct+'%';
+  if(subEl) subEl.textContent=done.length+' / '+all.length+' 완료';
+}
+function updateCatCounts(){document.querySelectorAll('.check-cat').forEach(updateCatCount)}
+function updateCatCount(cat){
+  const all=cat.querySelectorAll('.check-item').length;
+  const done=cat.querySelectorAll('.check-item.done').length;
+  const catId=cat.getAttribute('data-cat');
+  const cnt=document.getElementById('cnt-'+catId);
+  if(cnt){cnt.textContent=done+'/'+all;cnt.classList.toggle('done',done===all&&all>0)}
+}
+function toggleCat(id){
+  const body=document.getElementById('body-'+id);
+  const arr=document.getElementById('arr-'+id);
+  const open=body.classList.toggle('open');
+  arr.classList.toggle('open',open);
+}
+function resetChecklist(){
+  if(!confirm('내 체크 상태를 모두 초기화할까요?')) return;
+  document.querySelectorAll('#sv-check .check-item').forEach(el=>{
+    el.classList.remove('done');
+    lsD(CK_PRE+el.getAttribute('data-id'));
+  });
+  updateProgress();updateCatCounts();
+}
+
+/* ── 편집 모드 ── */
+let editMode=false;
+function toggleEditMode(){
+  editMode=!editMode;
+  const sv=document.getElementById('sv-check');
+  sv.classList.toggle('edit-mode',editMode);
+  const btn=document.getElementById('editToggleBtn');
+  btn.classList.toggle('on',editMode);
+  btn.textContent=editMode?'✏️ 완료':'✏️ 편집';
+}
+
+/* ── 항목 삭제 ── */
+function delItem(e,btn){
+  e.stopPropagation();
+  if(!confirm('이 항목을 삭제할까요?')) return;
+  const item=btn.closest('.check-item');
+  const id=item.getAttribute('data-id');
+  const catEl=item.closest('.check-cat');
+  const catId=catEl?catEl.getAttribute('data-cat'):'';
+  if(catId&&id.startsWith('cu_')){
+    const saved=JSON.parse(lsG(CU_PRE+catId)||'[]');
+    lsS(CU_PRE+catId,JSON.stringify(saved.filter(x=>x.id!==id)));
+  }
+  lsD(CK_PRE+id);lsD(SH_PRE+id);
+  item.remove();
+  updateProgress();
+  if(catEl) updateCatCount(catEl);
+}
+
+/* ── 항목 추가 ── */
+let cuCnt=Date.now();
+function makeItemEl(id,text){
+  const div=document.createElement('div');
+  div.className='check-item';div.setAttribute('data-id',id);
+  div.innerHTML='<div class="check-box"></div><div class="check-label">'+text+'</div><button class="check-del" onclick="delItem(event,this)" title="삭제">✕</button>';
+  div.addEventListener('click',function(){toggleCheck(this)});
+  return div;
+}
+function addItem(btn){
+  const row=btn.closest('.add-item-row');
+  const input=row.querySelector('.add-item-input');
+  const text=input.value.trim();if(!text) return;
+  const catEl=row.closest('.check-cat');
+  const catId=catEl.getAttribute('data-cat');
+  const id='cu_'+(cuCnt++);
+  const item=makeItemEl(id,text);
+  row.before(item);input.value='';
+  const saved=JSON.parse(lsG(CU_PRE+catId)||'[]');
+  saved.push({id,text});lsS(CU_PRE+catId,JSON.stringify(saved));
+  updateProgress();updateCatCount(catEl);
+}
+function loadCustomItems(){
+  document.querySelectorAll('.check-cat').forEach(catEl=>{
+    const catId=catEl.getAttribute('data-cat');
+    const saved=JSON.parse(lsG(CU_PRE+catId)||'[]');
+    const addRow=catEl.querySelector('.add-item-row');
+    saved.forEach(function(o){
+      const item=makeItemEl(o.id,o.text);
+      if(lsG(CK_PRE+o.id)==='1') item.classList.add('done');
+      if(addRow) addRow.before(item);
+    });
+  });
+}
+
+
+/* ── Enter키 추가 ── */
+document.addEventListener('keydown',function(e){
+  if(e.key==='Enter'&&e.target.classList.contains('add-item-input')){
+    const btn=e.target.closest('.add-item-row').querySelector('.add-item-btn');
+    if(btn) addItem(btn);
+  }
+});
+
+function loadChecks(){
+  document.querySelectorAll('#sv-check .check-item').forEach(function(el){
+    const id=el.getAttribute('data-id');
+    if(lsG(CK_PRE+id)==='1') el.classList.add('done');
+    el.addEventListener('click',function(){toggleCheck(this)});
+      });
+  loadCustomItems();
+  updateProgress();updateCatCounts();
+}
+loadChecks();
+/* ══ MODAL CLOSE — bg click (desktop+mobile) + ESC ══ */
+document.getElementById('modalBg').addEventListener('click', function(e){
+  if(e.target===this) closeModal();
+});
+document.addEventListener('keydown', function(e){
+  if(e.key==='Escape') closeModal();
+});
+
+</script>
+</body>
+</html>
